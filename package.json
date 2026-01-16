@@ -1,0 +1,13 @@
+{
+  "name": "bot-unitv",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp Unitv",
+  "main": "index.js",
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
