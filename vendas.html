@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL DE VENDAS | SHOPP Express</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-green: #39ff14;
+            --bg-dark: #05070a;
+            --card-bg: #0d1117;
+        }
+
+        body { 
+            font-family: 'Space Grotesk', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: #f0f6fc;
+            background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, var(--bg-dark) 80%);
+            min-height: 100vh;
+        }
+
+        .title-brand { font-family: 'Syncopate', sans-serif; letter-spacing: -2px; }
+
+        .cyber-card { 
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cyber-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 2px; height: 100%;
+            background: var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+            opacity: 0.5;
+        }
+
+        .status-pill {
+            font-size: 9px;
+            padding: 2px 10px;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            font-weight: 700;
+        }
+
+        .btn-action {
+            clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 8% 100%, 0 75%);
+            transition: all 0.2s;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-action:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+        .label-tech {
+            font-size: 8px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: slideUp 0.4s ease forwards; }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col lg:flex-row justify-between items-end mb-12 gap-6 border-b border-white/10 pb-8">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="h-2 w-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></div>
+                    <span class="text-cyan-400 text-[10px] font-bold tracking-[0.3em] uppercase">Terminal Ativo</span>
+                </div>
+                <h1 class="text-4xl font-bold title-brand text-white italic">SHOPP Express</h1>
+                <p class="text-gray-500 font-light mt-2 tracking-widest uppercase text-[9px]">Interface de Gestão de Pedidos</p>
+            </div>
+            
+            <button onclick="buscarVendas()" class="btn-action bg-white text-black px-8 py-3 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                <i class="fa-solid fa-sync-alt"></i> SINCRONIZAR
+            </button>
+        </header>
+
+        <div id="vendas-container" class="grid grid-cols-1 gap-6">
+            <div class="col-span-full text-center py-20">
+                <p class="text-cyan-500 animate-pulse font-mono text-sm tracking-widest">AGUARDANDO DADOS...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://zkhradhpwakvtgsilsyj.supabase.co"; 
+        const SUPABASE_KEY = "sb_publishable_UrUxPsPD3XBTANwwp3tZOA_-REppnf3";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function buscarVendas() {
+            try {
+                const { data, error } = await _supabase.from('vendas').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                renderVendas(data);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderVendas(vendas) {
+            const container = document.getElementById('vendas-container');
+            if (vendas.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-600 py-10">NENHUM REGISTRO NO SISTEMA</p>';
+                return;
+            }
+
+            container.innerHTML = vendas.map((v, index) => {
+                const fone = v.cliente_whatsapp?.replace(/\D/g, '');
+                const valorNum = parseFloat(v.total || 0);
+                const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorNum);
+                
+                // MENSAGENS PRONTAS
+                const msgBoasVindas = encodeURIComponent(`Olá *${v.cliente_nome}*! 👋 Bem-vindo(a) à *SHOPP Express*. Tudo bem?\n\nRecebemos seu interesse no produto *${v.itens}* e estou aqui para te ajudar a finalizar seu pedido!`);
+                const msgDados = encodeURIComponent(`📍 *FICHA DO PEDIDO - SHOPP Express*\n\n👤 *Cliente:* ${v.cliente_nome}\n📱 *Aparelho:* ${v.itens}\n🚚 *Entrega:* ${v.endereco}`);
+                const msgCobranca = encodeURIComponent(`✅ *RESUMO PARA PAGAMENTO*\n\nOlá *${v.cliente_nome}*, para garantirmos o seu *${v.itens}*, seguem os dados:\n\n💰 *Valor Total:* ${valorFormatado}\n💳 *Forma:* ${v.pagamento}\n\nPodemos prosseguir com o pagamento? 😄`);
+
+                return `
+                <div class="cyber-card p-6 rounded-sm fade-in">
+                    <div class="flex flex-col lg:flex-row justify-between gap-6">
+                        
+                        <div class="lg:w-1/4">
+                            <span class="status-pill ${v.status === 'Entregue' ? 'bg-green-500 text-black' : 'bg-yellow-500 text-black'} mb-3 inline-block">
+                                ${v.status?.toUpperCase() || 'PENDENTE'}
+                            </span>
+                            <span class="label-tech">Cliente</span>
+                            <h2 class="text-xl font-bold text-white uppercase tracking-tight">${v.cliente_nome}</h2>
+                            <p class="text-gray-500 text-[11px] mt-1 italic">${v.endereco}</p>
+                        </div>
+
+                        <div class="lg:w-1/3 bg-black/30 p-4 border border-white/5 rounded-lg">
+                            <span class="label-tech text-cyan-400">Dados do Produto</span>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                                <div><span class="text-[8px] text-gray-500 block">MODELO</span><p class="text-xs font-bold text-white">${v.itens}</p></div>
+                                <div><span class="text-[8px] text-gray-500 block">BATERIA</span><p class="text-xs font-bold text-green-400">${v.bateria ? v.bateria + '%' : '--'}</p></div>
+                                <div class="col-span-2"><span class="text-[8px] text-gray-500 block">IMEI</span><p class="text-[10px] font-mono text-gray-400">${v.imei || 'NÃO INFORMADO'}</p></div>
+                            </div>
+                        </div>
+
+                        <div class="lg:w-1/3 flex flex-col justify-between">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="text-right w-full">
+                                    <span class="label-tech">Total a Receber</span>
+                                    <p class="text-2xl font-black text-white tracking-tighter">${valorFormatado}</p>
+                                    <span class="text-[9px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 font-bold">${v.pagamento}</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2">
+                                <a href="https://wa.me/${fone}?text=${msgBoasVindas}" target="_blank" class="btn-action bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                                    <i class="fa-solid fa-comments"></i> OLÁ
+                                </a>
+                                <a href="https://wa.me/${fone}?text=${msgDados}" target="_blank" class="btn-action bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
+                                    <i class="fa-solid fa-file-lines"></i> FICHA
+                                </a>
+                                <a href="https://wa.me/${fone}?text=${msgCobranca}" target="_blank" class="btn-action bg-green-600/20 text-green-400 border border-green-500/30">
+                                    <i class="fa-solid fa-dollar-sign"></i> COBRAR
+                                </a>
+                                
+                                <button onclick="marcarEntregue(${v.id}, this)" class="btn-action bg-white text-black col-span-2 py-2">
+                                    ${v.status === 'Entregue' ? '<i class="fa-solid fa-check"></i> CONCLUÍDO' : 'MARCAR ENTREGA'}
+                                </button>
+                                <button onclick="deletarPedido(${v.id}, this)" class="btn-action bg-red-900/20 text-red-500 border border-red-500/40">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function marcarEntregue(id, btn) {
+            btn.innerHTML = "...";
+            const { error } = await _supabase.from('vendas').update({ status: 'Entregue' }).eq('id', id);
+            if (!error) buscarVendas();
+        }
+
+        async function deletarPedido(id, btn) {
+            if(confirm("APAGAR REGISTRO?")) {
+                btn.innerHTML = "...";
+                const { error } = await _supabase.from('vendas').delete().eq('id', id);
+                if (!error) buscarVendas();
+            }
+        }
+
+        window.onload = buscarVendas;
+        setInterval(buscarVendas, 30000);
+    </script>
+</body>
+</html>
